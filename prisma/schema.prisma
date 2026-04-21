@@ -1,0 +1,86 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Get a free hosted Postgres database in seconds: `npx create-db`
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+
+datasource db {
+  provider = "postgresql"
+}
+
+model Garments {
+  id                Int     @id @default(autoincrement())
+  orderId           Int
+  order             Order   @relation(fields: [orderId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+  type              String
+  quantity          Int
+  care_instructions String
+  delicate_flag     Boolean
+  unit_price        Float
+}
+
+model Order {
+  id          Int          @id @default(autoincrement())
+  garments    Garments[]
+  userId      Int
+  user        User         @relation(fields: [userId], references: [id])
+  pickup_date String
+  weight_kg   Float
+  status      String
+  total_price Float
+  created_at  DateTime     @default(now()) @map("created_at")
+  staffOrders StaffOrder[]
+}
+
+model User {
+  id            Int             @id @default(autoincrement())
+  email         String
+  password      String
+  name          String
+  address       String
+  phone         String
+  role          String
+  orders        Order[]
+  subscriptions Subscriptions[]
+  staffs        Staff[]
+}
+
+model Subscriptions {
+  id                  Int     @id @default(autoincrement())
+  userId              Int
+  user                User    @relation(fields: [userId], references: [id])
+  plan                String
+  discount_percentage Int
+  active_flag         Boolean
+}
+
+model PricingTier {
+  id             Int   @id @default(autoincrement())
+  min_weight_kg  Float
+  max_weight_kg  Float
+  base_price     Float
+  extra_kg_price Float
+}
+
+model StaffOrder {
+  order_id Int
+  staff_id Int
+  order    Order @relation(fields: [order_id], references: [id])
+  staff    Staff @relation(fields: [staff_id], references: [id])
+
+  @@id([order_id, staff_id])
+}
+
+model Staff {
+  id            Int     @id @default(autoincrement())
+  userId        Int
+  user          User    @relation(fields: [userId], references: [id])
+  employee_role String
+  active_flag   Boolean
+
+  staffOrders StaffOrder[]
+}
