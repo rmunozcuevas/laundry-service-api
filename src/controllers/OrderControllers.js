@@ -6,10 +6,28 @@ import {
     deleteOrder
 } from '../services/OrderServices.js';
 
+/**
+ * toYyyyMmDd()
+ * Method of Date instances returns a string that represents date in
+ * date time string format
+ */
 function toYyyyMmDd(d) {
     return d.toISOString().slice(0, 10);
 }
 
+/**
+ * computePickupDateFromNow()
+ * this helper function makes it to where 
+ * leadDaysRaw gets the environment variable
+ * if PICKUP_LEAD_DAYS doesn't exist then we just use 2 or we use 
+ * leadDaysRaw if the environment variable does exist
+ * 
+ * make a new date variable called pickup
+ * set the current day of when request is made to that day + the amount of days needed
+ * within leadDays, then return it formatted
+ * via the helper function toYyyyMmDd
+ * 
+ */
 function computePickupDateFromNow() {
     const leadDaysRaw = process.env.PICKUP_LEAD_DAYS;
     const leadDaysParsed = leadDaysRaw === undefined ? 2 : Number(leadDaysRaw);
