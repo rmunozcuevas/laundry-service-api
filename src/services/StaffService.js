@@ -33,3 +33,13 @@ export async function updatedStaff(id, updatedStaffData) {
         throw error;
     }
 }
+
+export async function deleteStaff(id) {
+    const result = remove(id);
+    if(result) return;
+    else {
+        const error = new Error(`Garment ${id} not found`);
+        error.status = 404;
+        throw error;
+    }
+}
