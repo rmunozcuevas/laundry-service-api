@@ -19,3 +19,17 @@ export async function getStaffById(id) {
     error.status = 404;
     throw error;
 }
+
+export async function createStaff(staffData) {
+    return create(staffData);
+}
+
+export async function updatedStaff(id, updatedStaffData) {
+    const updated_staff_data = await update(id, updatedStaffData);
+    if(updated_staff_data) return updated_staff_data;
+    else{
+        const error = new Error(`Staff ${id} not found`);
+        error.status = 404;
+        throw error;
+    }
+}
