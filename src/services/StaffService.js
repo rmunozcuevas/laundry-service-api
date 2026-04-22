@@ -7,7 +7,7 @@ import {
 } from '../repositories/StaffRepo.js';
 
 export async function getAllStaff(options) {
-    const staff = await getAll(options);
+    return getAll(options);
 }
 
 export async function getStaffById(id) {
@@ -35,10 +35,10 @@ export async function updatedStaff(id, updatedStaffData) {
 }
 
 export async function deleteStaff(id) {
-    const result = remove(id);
+    const result = await remove(id);
     if(result) return;
     else {
-        const error = new Error(`Garment ${id} not found`);
+        const error = new Error(`Staff ${id} not found`);
         error.status = 404;
         throw error;
     }
