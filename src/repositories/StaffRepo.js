@@ -9,7 +9,7 @@ export async function getAll({search, sortBy, order, offset, limit}) {
 
     if (search) {
         conditions.OR = [
-            { type: { contains: search, mode: 'insensitive'}},
+            { active_flag: { contains: search, mode: 'insensitive'}},
             { employee_role: {contains: search, mode: 'insensitive'}}
         ];
 
