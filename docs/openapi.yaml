@@ -3,8 +3,8 @@ info:
   title: Laundry Service API
   version: 0.1.0
 servers:
+  - url: /
   - url: http://localhost:3000
-
 tags:
   - name: Garments
     description: Operations related to Garments
@@ -12,8 +12,10 @@ tags:
     description: Operations related to Auth
   - name: Order
     description: Operations related to Orders
-
-
+  - name: Subscriptions
+    description: Operations related to Subscriptions
+  - name: PricingTier
+    description: Operations related to PricingTiers
 components:
   securitySchemes:
     bearerAuth:
@@ -45,7 +47,13 @@ components:
       description: Field to sort by
       schema:
         type: string
-        enum: [id, type, care_instructions, delicate_flag, quantity, unit_price]
+        enum:
+          - id
+          - type
+          - care_instructions
+          - delicate_flag
+          - quantity
+          - unit_price
         example: id
     OrderParam:
       name: order
@@ -54,7 +62,9 @@ components:
       description: Sort direction
       schema:
         type: string
-        enum: [asc, desc]
+        enum:
+          - asc
+          - desc
         example: asc
     OffsetParam:
       name: offset
@@ -99,7 +109,14 @@ components:
       description: Field to sort by
       schema:
         type: string
-        enum: [id, userId, pickup_date, weight_kg, status, total_price, created_at]
+        enum:
+          - id
+          - userId
+          - pickup_date
+          - weight_kg
+          - status
+          - total_price
+          - created_at
         example: created_at
     OrderOrderParam:
       name: order
@@ -108,7 +125,9 @@ components:
       description: Sort direction
       schema:
         type: string
-        enum: [asc, desc]
+        enum:
+          - asc
+          - desc
         example: desc
     OrderOffsetParam:
       name: offset
@@ -132,7 +151,14 @@ components:
   schemas:
     Garment:
       type: object
-      required: [id, orderId, type, quantity, care_instructions, delicate_flag, unit_price]
+      required:
+        - id
+        - orderId
+        - type
+        - quantity
+        - care_instructions
+        - delicate_flag
+        - unit_price
       properties:
         id:
           type: integer
@@ -157,7 +183,13 @@ components:
           example: 3.5
     GarmentCreate:
       type: object
-      required: [orderId, type, quantity, care_instructions, delicate_flag, unit_price]
+      required:
+        - orderId
+        - type
+        - quantity
+        - care_instructions
+        - delicate_flag
+        - unit_price
       properties:
         orderId:
           type: integer
@@ -215,7 +247,14 @@ components:
         error: Not Found
     Order:
       type: object
-      required: [id, userId, pickup_date, weight_kg, status, total_price, created_at]
+      required:
+        - id
+        - userId
+        - pickup_date
+        - weight_kg
+        - status
+        - total_price
+        - created_at
       properties:
         id:
           type: integer
@@ -226,7 +265,7 @@ components:
         pickup_date:
           type: string
           description: Server-generated pickup date (YYYY-MM-DD)
-          example: "2026-04-20"
+          example: '2026-04-20'
         weight_kg:
           type: number
           example: 7.5
@@ -239,10 +278,11 @@ components:
         created_at:
           type: string
           format: date-time
-          example: "2026-04-18T16:30:00.000Z"
+          example: '2026-04-18T16:30:00.000Z'
     OrderCreate:
       type: object
-      required: [weight_kg]
+      required:
+        - weight_kg
       properties:
         userId:
           type: integer
@@ -255,26 +295,26 @@ components:
           type: string
           description: Optional; defaults to pending.
           example: pending
-        total_price:
-          type: number
-          description: Optional; defaults to 0.
-          example: 0
+      description: pickup_date and total_price are server-generated.
     OrderUpdate:
       type: object
-      description: At least one field must be provided. pickup_date is server-generated.
+      description: At least one field must be provided. pickup_date and total_price are server-generated.
       properties:
         weight_kg:
           type: number
-          example: 8.0
+          example: 8
         status:
           type: string
           example: in_progress
-        total_price:
-          type: number
-          example: 30.0
     UserPublic:
       type: object
-      required: [id, email, name, address, phone, role]
+      required:
+        - id
+        - email
+        - name
+        - address
+        - phone
+        - role
       properties:
         id:
           type: integer
@@ -296,7 +336,13 @@ components:
           example: customer
     SignUpRequest:
       type: object
-      required: [email, password, name, address, phone, role]
+      required:
+        - email
+        - password
+        - name
+        - address
+        - phone
+        - role
       properties:
         email:
           type: string
@@ -318,7 +364,9 @@ components:
           example: customer
     LoginRequest:
       type: object
-      required: [email, password]
+      required:
+        - email
+        - password
       properties:
         email:
           type: string
@@ -328,15 +376,20 @@ components:
           example: password123
     AuthTokenResponse:
       type: object
-      required: [accessToken]
+      required:
+        - accessToken
       properties:
         accessToken:
           type: string
           example: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
-
     PricingTier:
       type: object
-      required: [id, min_weight_kg, max_weight_kg, base_price, extra_kg_price]
+      required:
+        - id
+        - min_weight_kg
+        - max_weight_kg
+        - base_price
+        - extra_kg_price
       properties:
         id:
           type: integer
@@ -355,7 +408,11 @@ components:
           example: 3
     PricingTierCreate:
       type: object
-      required: [min_weight_kg, max_weight_kg, base_price, extra_kg_price]
+      required:
+        - min_weight_kg
+        - max_weight_kg
+        - base_price
+        - extra_kg_price
       properties:
         min_weight_kg:
           type: number
@@ -387,7 +444,12 @@ components:
           example: 3.5
     Subscription:
       type: object
-      required: [id, userId, plan, discount_percentage, active_flag]
+      required:
+        - id
+        - userId
+        - plan
+        - discount_percentage
+        - active_flag
       properties:
         id:
           type: integer
@@ -406,7 +468,8 @@ components:
           example: true
     SubscriptionCreate:
       type: object
-      required: [plan]
+      required:
+        - plan
       properties:
         userId:
           type: integer
@@ -436,7 +499,6 @@ components:
         active_flag:
           type: boolean
           example: false
-
 paths:
   /api/garments:
     get:
@@ -450,7 +512,7 @@ paths:
         - $ref: '#/components/parameters/OffsetParam'
         - $ref: '#/components/parameters/LimitParam'
       responses:
-        "200":
+        '200':
           description: OK
           content:
             application/json:
@@ -458,12 +520,26 @@ paths:
                 type: array
                 items:
                   $ref: '#/components/schemas/Garment'
-        "400":
+        '400':
           description: Validation failed
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/ValidationError'
+        '401':
+          description: Not authenticated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '403':
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+      security:
+        - bearerAuth: []
     post:
       tags:
         - Garments
@@ -477,19 +553,19 @@ paths:
             schema:
               $ref: '#/components/schemas/GarmentCreate'
       responses:
-        "201":
+        '201':
           description: Created
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/Garment'
-        "400":
+        '400':
           description: Validation failed
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/ValidationError'
-        "401":
+        '401':
           description: Not authenticated
           content:
             application/json:
@@ -503,24 +579,38 @@ paths:
       parameters:
         - $ref: '#/components/parameters/GarmentId'
       responses:
-        "200":
+        '200':
           description: OK
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/Garment'
-        "400":
+        '400':
           description: Validation failed
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/ValidationError'
-        "404":
+        '401':
+          description: Not authenticated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '403':
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '404':
           description: Not found
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/Error'
+      security:
+        - bearerAuth: []
     put:
       tags:
         - Garments
@@ -536,31 +626,31 @@ paths:
             schema:
               $ref: '#/components/schemas/GarmentUpdate'
       responses:
-        "200":
+        '200':
           description: OK
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/Garment'
-        "400":
+        '400':
           description: Validation failed
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/ValidationError'
-        "401":
+        '401':
           description: Not authenticated
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/Error'
-        "403":
+        '403':
           description: Forbidden
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/Error'
-        "404":
+        '404':
           description: Not found
           content:
             application/json:
@@ -575,21 +665,21 @@ paths:
       parameters:
         - $ref: '#/components/parameters/GarmentId'
       responses:
-        "204":
+        '204':
           description: No Content
-        "401":
+        '401':
           description: Not authenticated
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/Error'
-        "403":
+        '403':
           description: Forbidden
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/Error'
-        "404":
+        '404':
           description: Not found
           content:
             application/json:
@@ -607,7 +697,7 @@ paths:
         - $ref: '#/components/parameters/OrderOffsetParam'
         - $ref: '#/components/parameters/OrderLimitParam'
       responses:
-        "200":
+        '200':
           description: OK
           content:
             application/json:
@@ -615,12 +705,26 @@ paths:
                 type: array
                 items:
                   $ref: '#/components/schemas/Order'
-        "400":
+        '400':
           description: Validation failed
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/ValidationError'
+        '401':
+          description: Not authenticated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '403':
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+      security:
+        - bearerAuth: []
     post:
       tags:
         - Order
@@ -634,19 +738,19 @@ paths:
             schema:
               $ref: '#/components/schemas/OrderCreate'
       responses:
-        "201":
+        '201':
           description: Created
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/Order'
-        "400":
+        '400':
           description: Validation failed
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/ValidationError'
-        "401":
+        '401':
           description: Not authenticated
           content:
             application/json:
@@ -660,24 +764,38 @@ paths:
       parameters:
         - $ref: '#/components/parameters/OrderId'
       responses:
-        "200":
+        '200':
           description: OK
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/Order'
-        "400":
+        '400':
           description: Validation failed
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/ValidationError'
-        "404":
+        '401':
+          description: Not authenticated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '403':
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '404':
           description: Not found
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/Error'
+      security:
+        - bearerAuth: []
     put:
       tags:
         - Order
@@ -693,25 +811,25 @@ paths:
             schema:
               $ref: '#/components/schemas/OrderUpdate'
       responses:
-        "200":
+        '200':
           description: OK
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/Order'
-        "400":
+        '400':
           description: Validation failed
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/ValidationError'
-        "401":
+        '401':
           description: Not authenticated
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/Error'
-        "404":
+        '404':
           description: Not found
           content:
             application/json:
@@ -726,15 +844,15 @@ paths:
       parameters:
         - $ref: '#/components/parameters/OrderId'
       responses:
-        "204":
+        '204':
           description: No Content
-        "401":
+        '401':
           description: Not authenticated
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/Error'
-        "404":
+        '404':
           description: Not found
           content:
             application/json:
@@ -752,19 +870,19 @@ paths:
             schema:
               $ref: '#/components/schemas/SignUpRequest'
       responses:
-        "201":
+        '201':
           description: Created
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/UserPublic'
-        "400":
+        '400':
           description: Validation failed
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/ValidationError'
-        "409":
+        '409':
           description: Email already used
           content:
             application/json:
@@ -782,31 +900,30 @@ paths:
             schema:
               $ref: '#/components/schemas/LoginRequest'
       responses:
-        "200":
+        '200':
           description: OK
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/AuthTokenResponse'
-        "400":
+        '400':
           description: Validation failed
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/ValidationError'
-        "401":
+        '401':
           description: Invalid credentials
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/Error'
-        "500":
+        '500':
           description: Server misconfigured
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/Error'
-
   /api/pricing-tiers:
     get:
       tags:
@@ -824,13 +941,20 @@ paths:
           required: false
           schema:
             type: string
-            enum: [id, min_weight_kg, max_weight_kg, base_price, extra_kg_price]
+            enum:
+              - id
+              - min_weight_kg
+              - max_weight_kg
+              - base_price
+              - extra_kg_price
         - name: order
           in: query
           required: false
           schema:
             type: string
-            enum: [asc, desc]
+            enum:
+              - asc
+              - desc
         - name: offset
           in: query
           required: false
@@ -845,7 +969,7 @@ paths:
             minimum: 1
             maximum: 50
       responses:
-        "200":
+        '200':
           description: OK
           content:
             application/json:
@@ -853,7 +977,7 @@ paths:
                 type: array
                 items:
                   $ref: '#/components/schemas/PricingTier'
-        "400":
+        '400':
           description: Validation failed
           content:
             application/json:
@@ -872,25 +996,25 @@ paths:
             schema:
               $ref: '#/components/schemas/PricingTierCreate'
       responses:
-        "201":
+        '201':
           description: Created
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/PricingTier'
-        "400":
+        '400':
           description: Validation failed
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/ValidationError'
-        "401":
+        '401':
           description: Not authenticated
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/Error'
-        "403":
+        '403':
           description: Forbidden
           content:
             application/json:
@@ -909,19 +1033,19 @@ paths:
             type: integer
             minimum: 1
       responses:
-        "200":
+        '200':
           description: OK
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/PricingTier'
-        "400":
+        '400':
           description: Validation failed
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/ValidationError'
-        "404":
+        '404':
           description: Not found
           content:
             application/json:
@@ -947,31 +1071,31 @@ paths:
             schema:
               $ref: '#/components/schemas/PricingTierUpdate'
       responses:
-        "200":
+        '200':
           description: OK
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/PricingTier'
-        "400":
+        '400':
           description: Validation failed
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/ValidationError'
-        "401":
+        '401':
           description: Not authenticated
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/Error'
-        "403":
+        '403':
           description: Forbidden
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/Error'
-        "404":
+        '404':
           description: Not found
           content:
             application/json:
@@ -991,21 +1115,21 @@ paths:
             type: integer
             minimum: 1
       responses:
-        "204":
+        '204':
           description: No Content
-        "401":
+        '401':
           description: Not authenticated
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/Error'
-        "403":
+        '403':
           description: Forbidden
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/Error'
-        "404":
+        '404':
           description: Not found
           content:
             application/json:
@@ -1029,13 +1153,20 @@ paths:
           required: false
           schema:
             type: string
-            enum: [id, userId, plan, discount_percentage, active_flag]
+            enum:
+              - id
+              - userId
+              - plan
+              - discount_percentage
+              - active_flag
         - name: order
           in: query
           required: false
           schema:
             type: string
-            enum: [asc, desc]
+            enum:
+              - asc
+              - desc
         - name: offset
           in: query
           required: false
@@ -1050,7 +1181,7 @@ paths:
             minimum: 1
             maximum: 50
       responses:
-        "200":
+        '200':
           description: OK
           content:
             application/json:
@@ -1058,13 +1189,13 @@ paths:
                 type: array
                 items:
                   $ref: '#/components/schemas/Subscription'
-        "401":
+        '401':
           description: Not authenticated
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/Error'
-        "403":
+        '403':
           description: Forbidden
           content:
             application/json:
@@ -1083,19 +1214,19 @@ paths:
             schema:
               $ref: '#/components/schemas/SubscriptionCreate'
       responses:
-        "201":
+        '201':
           description: Created
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/Subscription'
-        "400":
+        '400':
           description: Validation failed
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/ValidationError'
-        "401":
+        '401':
           description: Not authenticated
           content:
             application/json:
@@ -1109,7 +1240,7 @@ paths:
       security:
         - bearerAuth: []
       responses:
-        "200":
+        '200':
           description: OK
           content:
             application/json:
@@ -1117,7 +1248,7 @@ paths:
                 type: array
                 items:
                   $ref: '#/components/schemas/Subscription'
-        "401":
+        '401':
           description: Not authenticated
           content:
             application/json:
@@ -1138,25 +1269,25 @@ paths:
             type: integer
             minimum: 1
       responses:
-        "200":
+        '200':
           description: OK
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/Subscription'
-        "401":
+        '401':
           description: Not authenticated
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/Error'
-        "403":
+        '403':
           description: Forbidden
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/Error'
-        "404":
+        '404':
           description: Not found
           content:
             application/json:
@@ -1182,31 +1313,31 @@ paths:
             schema:
               $ref: '#/components/schemas/SubscriptionUpdate'
       responses:
-        "200":
+        '200':
           description: OK
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/Subscription'
-        "400":
+        '400':
           description: Validation failed
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/ValidationError'
-        "401":
+        '401':
           description: Not authenticated
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/Error'
-        "403":
+        '403':
           description: Forbidden
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/Error'
-        "404":
+        '404':
           description: Not found
           content:
             application/json:
@@ -1226,24 +1357,23 @@ paths:
             type: integer
             minimum: 1
       responses:
-        "204":
+        '204':
           description: No Content
-        "401":
+        '401':
           description: Not authenticated
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/Error'
-        "403":
+        '403':
           description: Forbidden
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/Error'
-        "404":
+        '404':
           description: Not found
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/Error'
-
