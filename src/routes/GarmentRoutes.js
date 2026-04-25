@@ -16,13 +16,14 @@ import {
 
 import { authenticate } from '../middleware/authenticate.js';
 import { authorizeOwnership } from '../middleware/authorizeOwnership.js';
+import { authorizeOrderOwnership } from '../middleware/authorizeOrderOwnership.js';
 import { asyncHandler } from '../utils/asyncHandler.js';
 
 const router = express.Router();
 
-router.get('/', validateGarmentQuery, asyncHandler(getAllGarmentsHandlers));
-router.get('/:id', validateId, asyncHandler(getGarmentByIdHandler));
-router.post('/', authenticate, validateCreateGarment, asyncHandler(createGarmentHandler));
+router.get('/', authenticate, validateGarmentQuery, asyncHandler(getAllGarmentsHandlers));
+router.get('/:id', authenticate, validateId, authorizeOwnership, asyncHandler(getGarmentByIdHandler));
+router.post('/', authenticate, validateCreateGarment, authorizeOrderOwnership, asyncHandler(createGarmentHandler));
 
 router.put(
   '/:id',
@@ -33,12 +34,6 @@ router.put(
   asyncHandler(updateGarmentHandler),
 );
 
-router.delete(
-  '/:id',
-  authenticate,
-  validateId,
-  authorizeOwnership,
-  asyncHandler(deleteGarmentHandler),
-);
+router.delete('/:id', authenticate, validateId, authorizeOwnership, asyncHandler(deleteGarmentHandler));
 
 export default router;

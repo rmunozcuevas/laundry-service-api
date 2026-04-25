@@ -2,13 +2,8 @@ import { param, body, oneOf, query } from 'express-validator';
 import { handleValidationErrors } from './handleValidationErrors.js';
 
 export const validateId = [
-    param('id')
-    .trim()
-    .escape()
-    .isInt({ min: 1})
-    .withMessage('Id must be a positive integer'),
-
-    handleValidationErrors,
+  param('id').trim().escape().isInt({ min: 1 }).withMessage('Id must be a positive integer'),
+  handleValidationErrors,
 ];
 
 export const validateCreateOrder = [
@@ -36,30 +31,16 @@ export const validateCreateOrder = [
     .trim()
     .escape(),
 
-  body('total_price')
-    .optional()
-    .isFloat({ min: 0 })
-    .withMessage('total_price must be a non-negative number')
-    .toFloat(),
-
-  // pickup_date is computed on the server and is not accepted from the client.
-  body('pickup_date')
-    .not()
-    .exists()
-    .withMessage('pickup_date is server-generated'),
+  body('pickup_date').not().exists().withMessage('pickup_date is server-generated'),
+  body('total_price').not().exists().withMessage('total_price is server-generated'),
 
   handleValidationErrors,
 ];
 
 export const validateUpdateOrder = [
-  oneOf(
-    [
-      body('weight_kg').exists({ values: 'falsy' }),
-      body('status').exists({ values: 'falsy' }),
-      body('total_price').exists({ values: 'falsy' }),
-    ],
-    { message: 'At least one field (weight_kg, status, total_price) must be provided' },
-  ),
+  oneOf([body('weight_kg').exists({ values: 'falsy' }), body('status').exists({ values: 'falsy' })], {
+    message: 'At least one field (weight_kg, status) must be provided',
+  }),
 
   body('weight_kg')
     .optional()
@@ -77,27 +58,14 @@ export const validateUpdateOrder = [
     .trim()
     .escape(),
 
-  body('total_price')
-    .optional()
-    .isFloat({ min: 0 })
-    .withMessage('total_price must be a non-negative number')
-    .toFloat(),
-
-  body('pickup_date')
-    .not()
-    .exists()
-    .withMessage('pickup_date is server-generated'),
+  body('pickup_date').not().exists().withMessage('pickup_date is server-generated'),
+  body('total_price').not().exists().withMessage('total_price is server-generated'),
 
   handleValidationErrors,
 ];
 
 export const validateOrderQuery = [
-  query('search')
-    .optional()
-    .isString()
-    .withMessage('search must be a string')
-    .trim()
-    .escape(),
+  query('search').optional().isString().withMessage('search must be a string').trim().escape(),
 
   query('sortBy')
     .optional()
@@ -106,10 +74,7 @@ export const validateOrderQuery = [
       'sortBy must be one of id, userId, pickup_date, weight_kg, status, total_price, created_at',
     ),
 
-  query('order')
-    .optional()
-    .isIn(['asc', 'desc'])
-    .withMessage('order must be either asc or desc'),
+  query('order').optional().isIn(['asc', 'desc']).withMessage('order must be either asc or desc'),
 
   query('offset')
     .optional()

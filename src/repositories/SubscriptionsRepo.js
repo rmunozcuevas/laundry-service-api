@@ -22,6 +22,13 @@ export async function getByUserId(userId) {
   return prisma.subscriptions.findMany({ where: { userId } });
 }
 
+export async function getActiveForUser(userId) {
+  return prisma.subscriptions.findFirst({
+    where: { userId, active_flag: true },
+    orderBy: { id: 'desc' },
+  });
+}
+
 export async function create(subscriptionData) {
   return prisma.subscriptions.create({ data: subscriptionData });
 }

@@ -19,8 +19,8 @@ import { asyncHandler } from '../utils/asyncHandler.js';
 
 const router = express.Router();
 
-router.get('/', validateOrderQuery, asyncHandler(getAllOrdersHandlers));
-router.get('/:id', validateId, asyncHandler(getOrderByIdHandlers));
+router.get('/', authenticate, validateOrderQuery, asyncHandler(getAllOrdersHandlers));
+router.get('/:id', authenticate, validateId, asyncHandler(getOrderByIdHandlers));
 router.post('/', authenticate, validateCreateOrder, asyncHandler(createOrdersHandler));
 router.put('/:id', authenticate, validateId, validateUpdateOrder, asyncHandler(updateOrdersHandler));
 router.delete('/:id', authenticate, validateId, asyncHandler(deleteOrdersHandler));

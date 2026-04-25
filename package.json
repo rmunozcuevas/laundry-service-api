@@ -11,7 +11,8 @@
     "dev": "node --watch src/server.js",
     "start": "node src/server.js",
     "seed": "node seed-garments.js",
-    "seed:db": "node seed-db.js"
+    "seed:db": "node seed-db.js",
+    "render-build": "prisma migrate deploy && prisma generate && npm run seed:db"
   },
   "keywords": [],
   "author": "",
@@ -28,9 +29,7 @@
     "jsonwebtoken": "^9.0.2",
     "morgan": "^1.10.1",
     "pg": "^8.19.0",
-    "swagger-ui-express": "^5.0.1"
-  },
-  "devDependencies": {
+    "swagger-ui-express": "^5.0.1",
     "prisma": "^7.6.0"
   }
 }

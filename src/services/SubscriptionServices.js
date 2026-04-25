@@ -1,4 +1,12 @@
-import { getAll, getById, getByUserId, create, update, remove } from '../repositories/SubscriptionsRepo.js';
+import {
+  getAll,
+  getById,
+  getByUserId,
+  getActiveForUser,
+  create,
+  update,
+  remove,
+} from '../repositories/SubscriptionsRepo.js';
 
 export async function getAllSubscriptions(options) {
   return getAll(options);
@@ -16,6 +24,10 @@ export async function getSubscriptionById(id) {
 
 export async function getSubscriptionsForUser(userId) {
   return getByUserId(userId);
+}
+
+export async function getActiveSubscriptionForUser(userId) {
+  return getActiveForUser(userId);
 }
 
 export async function createSubscription(subscriptionData) {

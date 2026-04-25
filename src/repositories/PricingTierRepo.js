@@ -28,6 +28,24 @@ export async function getByPricingTier(id) {
   return prisma.pricingTier.findUnique({ where: { id } });
 }
 
+// Find a tier that covers this weight. If none exists, callers can fall back
+// to the "highest" tier and charge extra kg.
+export async function findCoveringTier(weightKg) {
+  return prisma.pricingTier.findFirst({
+    where: {
+      min_weight_kg: { lte: weightKg },
+      max_weight_kg: { gte: weightKg },
+    },
+    orderBy: { max_weight_kg: 'asc' },
+  });
+}
+
+export async function getHighestTier() {
+  return prisma.pricingTier.findFirst({
+    orderBy: { max_weight_kg: 'desc' },
+  });
+}
+
 export async function create(pricingTierData) {
   return prisma.pricingTier.create({ data: pricingTierData });
 }
