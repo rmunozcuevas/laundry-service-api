@@ -12,7 +12,7 @@
     "start": "node src/server.js",
     "seed": "node seed-garments.js",
     "seed:db": "node seed-db.js",
-    "render-build": "prisma migrate deploy && prisma generate && npm run seed:db"
+    "render-build": "prisma migrate deploy && prisma generate && npm run seed:db && npm run seed"
   },
   "keywords": [],
   "author": "",

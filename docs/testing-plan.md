@@ -1,24 +1,94 @@
 # Laundry Service API - Testing Plan (Swagger UI)
 
-These steps are designed to be followed in Swagger UI at `/api-docs`.
+This plan is written so a grader can verify **every endpoint** directly in Swagger UI, including authentication (JWT), authorization (401 vs 403), CRUD, and error handling.
 
-## Seed Credentials (Known Logins)
+Swagger UI location:
+- Local: `http://localhost:3000/api-docs`
+- Render: `<your-render-url>/api-docs`
 
-Run `npm run seed:db` first.
+Response shapes used in this plan:
+- Validation failures: `400` with `{ "errors": ["..."] }`
+- Other errors: `4xx/5xx` with `{ "error": "..." }`
 
+---
+
+## 0) Seed + Known Logins
+
+If running locally:
+1. (Optional reset) `SEED_PURGE=true npm run seed:db`
+2. Otherwise: `npm run seed:db`
+
+Optional DB “flow” sanity check (verifies tables link correctly):
+- Run: `node scripts/verify-db-flow.js`
+- Expect output: `DB flow check: OK` and an example `StaffOrder` assignment with linked `order` + `staff`.
+
+
+Seeded logins (known credentials):
 - Admin
   - Email: `admin@laundry.local`
   - Password: `admin-password-123`
-- Customer
+- Customer (owns seeded Orders/Garments/Subscription)
   - Email: `customer@laundry.local`
   - Password: `customer-password-123`
+- Staff (non-admin “intruder” user for 403 tests)
+  - Email: `staff@laundry.local`
+  - Password: `staff-password-123`
 
-## Authentication Setup (Swagger)
+---
+
+## 1) Swagger Auth Setup (required for protected endpoints)
 
 1. Open `/api-docs`
-2. Use `POST /api/auth/login` with one of the seed users
-3. Copy `accessToken`
-4. Click **Authorize** and paste the token (JWT only)
+2. Expand **Auth** → `POST /api/auth/login`
+3. Click **Try it out**
+4. Enter one of the seed credentials → click **Execute**
+5. Copy `accessToken` from the response body
+6. Click the **Authorize** button (top-right)
+7. Paste the token into the bearerAuth input → click **Authorize**
+
+Tip: To test `401 Unauthorized`, click **Authorize** again → **Logout** (or clear the token).
+
+---
+
+## 2) Capture Working IDs (so no guessing is needed)
+
+Do these once, then reuse the IDs in later steps.
+
+### As Customer
+1. Login as **Customer** and Authorize.
+2. `GET /api/orders` → **Try it out** → **Execute**
+   - Pick an order from the response (prefer one with `status` that starts with `seed`).
+   - Save:
+     - `customerOrderId = <id>`
+     - `customerUserId = <userId>`
+3. `GET /api/garments` → Execute → pick any garment.
+   - Save: `customerGarmentId = <id>`
+4. `GET /api/subscriptions/me` → Execute.
+   - If array is non-empty, pick one:
+     - Save: `customerSubscriptionId = <id>`
+   - If empty: create one using `POST /api/subscriptions`, then repeat `GET /api/subscriptions/me`.
+
+### As Staff
+1. Login as **Staff** and Authorize.
+2. Get your staff profile (this confirms your Staff table row exists):
+   - `GET /api/staff/me` → Execute
+   - Save: `staffId = <id>` and `staffUserId = <userId>`
+3. Create an order so you can confirm non-admin order creation works:
+   - `POST /api/orders` with body `{ "weight_kg": 2.5, "status": "pending" }`
+   - Save: `staffOrderId = <id>` from the response.
+
+### As Admin
+1. Login as **Admin** and Authorize.
+2. `GET /api/pricing-tiers` → Execute → pick one tier.
+   - Save: `pricingTierId = <id>`
+
+3. Confirm seeded StaffOrder assignments exist (seed-db creates at least 1 assignment):
+   - `GET /api/staff-orders` → Execute → pick one row
+   - Save: `assignedOrderId = <order_id>` and `assignedStaffId = <staff_id>`
+
+Recommended fixed IDs for “not found” tests:
+- Use `{id} = 999999` to trigger `404 Not Found`.
+- Use `{id} = 0` (or `-10`) to trigger `400 Bad Request` (invalid id).
 
 ---
 
@@ -26,178 +96,378 @@ Run `npm run seed:db` first.
 
 ### POST `/api/auth/signup`
 - Access Control: Public
-- Success:
-  - Provide a new email + valid password and required fields
-  - Expect `201` with a user object (no password)
-- 400:
-  - Invalid email or password too short
-  - Expect `400`
-- 409:
-  - Use an email that already exists (e.g. `customer@laundry.local`)
-  - Expect `409`
+- Success (201):
+  1. Try it out → body (example):
+     - `{ "email": "newuser1@laundry.local", "password": "Password123!", "name": "New User", "address": "1 Main St", "phone": "555-000-0000", "role": "customer" }`
+  2. Execute → Expect `201` and a user object (no password field).
+- Error 400 (validation):
+  - Use an invalid email (e.g. `not-an-email`) or short password (e.g. `123`) → Expect `400`.
+- Error 409 (duplicate):
+  - Reuse an existing email (e.g. `customer@laundry.local`) → Expect `409`.
 
 ### POST `/api/auth/login`
 - Access Control: Public
-- Success:
-  - Login with seed credentials
-  - Expect `200` and an `accessToken`
-- 401:
-  - Wrong password
-  - Expect `401`
+- Success (200):
+  - Login with a seed user → Expect `200` with `{ "accessToken": "<jwt>" }`.
+- Error 400 (validation):
+  - Invalid email format → Expect `400`.
+- Error 401 (bad credentials):
+  - Correct email + wrong password → Expect `401`.
 
 ---
 
-## Orders (Main Resource 1)
+## Orders (Main Resource 1) — `/api/orders`
 
 ### GET `/api/orders`
 - Access Control:
-  - Customer: only their own orders
+  - Customer/Staff: only their own orders
   - Admin: all orders
-- Setup: Authorize as customer or admin
-- Success:
-  - Expect `200` array
-- 401:
-  - Remove the JWT and retry
-  - Expect `401`
+- Success (200):
+  - Authorize as customer → Execute → Expect `200` array.
+- Error 400 (invalid query):
+  - Set `limit = 0` (or `sortBy = notAField`) → Expect `400`.
+- Error 401:
+  - Logout (remove token) → Execute → Expect `401`.
 
 ### POST `/api/orders`
 - Access Control:
-  - Customer: can create orders for themselves only
-  - Admin: can create orders for any user (optional `userId`)
-- Setup: Authorize
-- Success (customer):
-  - Body: `{ "weight_kg": 7.5, "status": "pending" }`
-  - Expect `201`
-- 400:
-  - Remove `weight_kg`
-  - Expect `400`
-- 403:
-  - As customer, include a different `userId`
-  - Expect `403`
+  - Customer/Staff: create for self only
+  - Admin: may create for another user using `userId`
+- Success (201, customer):
+  - Body: `{ "weight_kg": 7.5, "status": "pending" }` → Expect `201` with an order (includes `id`, `userId`, `pickup_date`, `total_price`).
+- Error 400:
+  - Remove `weight_kg` (or set `weight_kg: 0`) → Expect `400`.
+- Error 403:
+  - Login as customer, include a different `userId` than your own (example: `{ "userId": staffUserId, "weight_kg": 1.5 }`) → Expect `403`.
+- Error 401:
+  - Remove token → Expect `401`.
 
 ### GET `/api/orders/{id}`
-- Access Control:
-  - Owner or Admin
-- Setup:
-  - First call `GET /api/orders` and copy an order id
-- Success:
-  - Expect `200`
-- 403:
-  - Login as a different non-admin user and try someone else's order
-  - Expect `403`
-- 404:
-  - Use an id that does not exist (e.g. `999999`)
-  - Expect `404`
+- Access Control: Owner or Admin
+- Success (200):
+  - As customer, `{id} = customerOrderId` → Expect `200`.
+- Error 400:
+  - `{id} = 0` → Expect `400`.
+- Error 401:
+  - Remove token → Expect `401`.
+- Error 403:
+  1. As customer, confirm `customerOrderId`.
+  2. Login as staff.
+  3. Call `GET /api/orders/{id}` with `{id} = customerOrderId` → Expect `403`.
+- Error 404:
+  - `{id} = 999999` → Expect `404`.
 
 ### PUT `/api/orders/{id}`
-- Access Control:
-  - Owner or Admin
-- Setup: use an existing order id
-- Success:
-  - Body: `{ "status": "in_progress" }` or `{ "weight_kg": 9.0 }`
-  - Expect `200`
-- 400:
-  - Provide an empty body
-  - Expect `400`
-- 401:
-  - Remove JWT
-  - Expect `401`
-- 403:
-  - Non-owner non-admin
-  - Expect `403`
+- Access Control: Owner or Admin
+- Success (200):
+  - As customer, `{id} = customerOrderId`, body: `{ "status": "in_progress" }` → Expect `200`.
+- Error 400:
+  - Empty body `{}` → Expect `400` (at least one field required).
+- Error 401:
+  - Remove token → Expect `401`.
+- Error 403:
+  - Login as staff, `{id} = customerOrderId` → Expect `403`.
+- Error 404:
+  - `{id} = 999999` → Expect `404`.
 
 ### DELETE `/api/orders/{id}`
-- Access Control:
-  - Owner or Admin
-- Success:
-  - Expect `204`
-- 401/403/404 as above
+- Access Control: Owner or Admin
+- Success (204):
+  1. As customer, create a new order (`POST /api/orders`).
+  2. Copy its id as `tempOrderId`.
+  3. `DELETE /api/orders/{id}` with `{id} = tempOrderId` → Expect `204`.
+- Error 400 / 401 / 403 / 404:
+  - `{id}=0` → `400`, no token → `401`, staff deleting customer order → `403`, `{id}=999999` → `404`.
 
 ---
 
-## Garments (Main Resource 2)
+## Garments (Main Resource 2) — `/api/garments`
 
 ### GET `/api/garments`
 - Access Control:
-  - Customer: only garments on their own orders
+  - Customer/Staff: only garments on their own orders
   - Admin: all garments
-- Setup: Authorize
-- Success:
-  - Expect `200` array
-- 401:
-  - Remove JWT
-  - Expect `401`
+- Success (200):
+  - As customer, Execute → Expect `200` array.
+- Error 400 (invalid query):
+  - Set `limit = 0` (or `sortBy = notAField`) → Expect `400`.
+- Error 401:
+  - Remove token → Expect `401`.
 
 ### POST `/api/garments`
 - Access Control:
-  - Customer: can only create garments for their own orders
+  - Customer/Staff: can only create garments for orders they own
   - Admin: can create garments for any order
-- Setup:
-  1. Authorize as customer
-  2. Create an order or use an existing one from `GET /api/orders`
-- Success:
+- Success (201, customer):
   - Body example:
-    - `{ "orderId": 1, "type": "Shirt", "quantity": 2, "care_instructions": "Wash cold", "delicate_flag": false, "unit_price": 3.5 }`
-  - Expect `201`
-- 400:
-  - Use a non-existent `orderId` (e.g. `999999`)
-  - Expect `400`
-- 403:
-  - Use an `orderId` belonging to a different user (non-admin)
-  - Expect `403`
+    - `{ "orderId": customerOrderId, "type": "Shirt", "quantity": 2, "care_instructions": "Wash cold", "delicate_flag": false, "unit_price": 3.5 }`
+  - Expect `201`.
+- Error 400 (validation):
+  - Set `quantity = 0` or remove a required field (e.g. remove `type`) → Expect `400`.
+- Error 403 (ownership):
+  - Login as staff, try creating a garment using `{ "orderId": customerOrderId, ... }` → Expect `403`.
+- Error 404 (non-admin + missing order):
+  - As customer, use `orderId = 999999` → Expect `404` (order not found during ownership check).
+- Error 400 (admin + missing order):
+  - As admin, use `orderId = 999999` → Expect `400` (invalid orderId / foreign key).
+- Error 401:
+  - Remove token → Expect `401`.
 
 ### GET `/api/garments/{id}`
-- Access Control:
-  - Owner (via order) or Admin
-- Success:
-  - Expect `200`
-- 403/404 as above
+- Access Control: Owner (via garment’s order) or Admin
+- Success (200):
+  - As customer, `{id} = customerGarmentId` → Expect `200`.
+- Error 400:
+  - `{id} = 0` → Expect `400`.
+- Error 401:
+  - Remove token → Expect `401`.
+- Error 403:
+  - Login as staff, `{id} = customerGarmentId` → Expect `403`.
+- Error 404:
+  - `{id} = 999999` → Expect `404`.
 
 ### PUT `/api/garments/{id}`
-- Access Control:
-  - Owner or Admin
-- Success:
-  - Body: `{ "quantity": 5 }`
-  - Expect `200`
-- 403/404 as above
+- Access Control: Owner or Admin
+- Success (200):
+  - As customer, `{id} = customerGarmentId`, body: `{ "quantity": 5 }` → Expect `200`.
+- Error 400:
+  - Empty body `{}` → Expect `400`.
+- Error 401 / 403 / 404:
+  - Remove token → `401`, staff updating customer garment → `403`, `{id}=999999` → `404`.
 
 ### DELETE `/api/garments/{id}`
-- Access Control:
-  - Owner or Admin
-- Success:
-  - Expect `204`
+- Access Control: Owner or Admin
+- Success (204):
+  1. Create a garment (POST) and save its id as `tempGarmentId`.
+  2. `DELETE /api/garments/{id}` with `{id} = tempGarmentId` → Expect `204`.
+- Error 400 / 401 / 403 / 404:
+  - `{id}=0` → `400`, no token → `401`, staff deleting customer garment → `403`, `{id}=999999` → `404`.
 
 ---
 
-## Subscriptions (Main Resource 3)
+## Subscriptions (Main Resource 3) — `/api/subscriptions`
 
-### POST `/api/subscriptions`
-- Access Control: Authenticated users (creates for self), Admin can specify `userId`
-- Setup: Authorize as customer
-- Success:
-  - Body: `{ "plan": "basic", "discount_percentage": 10, "active_flag": true }`
-  - Expect `201`
-- 401:
-  - Remove JWT
-  - Expect `401`
+### GET `/api/subscriptions` (Admin list)
+- Access Control: Admin only
+- Success (200):
+  - Login as admin → Execute → Expect `200` array.
+- Error 401:
+  - Remove token → Expect `401`.
+- Error 403:
+  - Login as customer → Expect `403`.
 
 ### GET `/api/subscriptions/me`
 - Access Control: Authenticated user
-- Success:
-  - Expect `200` array
+- Success (200):
+  - Login as customer → Execute → Expect `200` array.
+- Error 401:
+  - Remove token → Expect `401`.
 
-### GET `/api/subscriptions`
-- Access Control: Admin only
-- Setup: Authorize as admin
-- Success:
-  - Expect `200` array
-- 403:
-  - Authorize as customer
-  - Expect `403`
+### POST `/api/subscriptions`
+- Access Control:
+  - Customer/Staff: create for self only
+  - Admin: may create for another user using `userId`
+- Success (201, customer):
+  - Body: `{ "plan": "basic", "discount_percentage": 10, "active_flag": true }` → Expect `201`.
+- Error 400:
+  - Remove `plan` OR set `discount_percentage = 101` → Expect `400`.
+- Error 403:
+  - Login as staff, set `userId = customerUserId` (someone else) → Expect `403`.
+- Error 401:
+  - Remove token → Expect `401`.
 
-### PUT/DELETE `/api/subscriptions/{id}`
+### GET `/api/subscriptions/{id}`
 - Access Control: Owner or Admin
-- Setup: get an id from `/api/subscriptions/me`
-- Success:
-  - Expect `200` on PUT, `204` on DELETE
-- 403/404/401 as above
+- Success (200):
+  - As customer, `{id} = customerSubscriptionId` → Expect `200`.
+- Error 400:
+  - `{id}=0` → Expect `400`.
+- Error 401:
+  - Remove token → Expect `401`.
+- Error 403:
+  - Login as staff, `{id} = customerSubscriptionId` → Expect `403`.
+- Error 404:
+  - `{id}=999999` → Expect `404`.
+
+### PUT `/api/subscriptions/{id}`
+- Access Control: Owner or Admin
+- Success (200):
+  - As customer, `{id} = customerSubscriptionId`, body: `{ "discount_percentage": 15 }` → Expect `200`.
+- Error 400:
+  - Empty body `{}` → Expect `400`.
+- Error 401 / 403 / 404:
+  - Remove token → `401`, staff updating customer subscription → `403`, `{id}=999999` → `404`.
+
+### DELETE `/api/subscriptions/{id}`
+- Access Control: Owner or Admin
+- Success (204):
+  1. Create a subscription (POST) and save its id as `tempSubscriptionId`.
+  2. `DELETE /api/subscriptions/{id}` with `{id} = tempSubscriptionId` → Expect `204`.
+- Error 400 / 401 / 403 / 404:
+  - `{id}=0` → `400`, no token → `401`, staff deleting customer subscription → `403`, `{id}=999999` → `404`.
+
+---
+
+## Pricing Tiers — `/api/pricing-tiers`
+
+### GET `/api/pricing-tiers`
+- Access Control: Public
+- Success (200):
+  - Execute → Expect `200` array.
+- Error 400 (invalid query):
+  - Set `limit = 0` or `sortBy = notAField` → Expect `400`.
+
+### GET `/api/pricing-tiers/{id}`
+- Access Control: Public
+- Success (200):
+  - `{id} = pricingTierId` → Expect `200`.
+- Error 400:
+  - `{id}=0` → Expect `400`.
+- Error 404:
+  - `{id}=999999` → Expect `404`.
+
+### POST `/api/pricing-tiers`
+- Access Control: Admin only
+- Success (201):
+  - Login as admin, body: `{ "min_weight_kg": 21, "max_weight_kg": 30, "base_price": 55, "extra_kg_price": 4 }` → Expect `201`.
+- Error 400:
+  - Set `min_weight_kg = 10` and `max_weight_kg = 5` → Expect `400`.
+- Error 401:
+  - Remove token → Expect `401`.
+- Error 403:
+  - Login as customer → Expect `403`.
+
+### PUT `/api/pricing-tiers/{id}`
+- Access Control: Admin only
+- Success (200):
+  - Login as admin, `{id} = pricingTierId`, body: `{ "base_price": 99 }` → Expect `200`.
+- Error 400:
+  - Empty body `{}` → Expect `400`.
+- Error 401 / 403 / 404:
+  - Remove token → `401`, customer token → `403`, `{id}=999999` → `404`.
+
+### DELETE `/api/pricing-tiers/{id}`
+- Access Control: Admin only
+- Success (204):
+  1. Create a new tier (POST) and save its id as `tempTierId`.
+  2. Delete it → Expect `204`.
+- Error 400 / 401 / 403 / 404:
+  - `{id}=0` → `400`, no token → `401`, customer token → `403`, `{id}=999999` → `404`.
+
+---
+
+## Staff — `/api/staff`
+
+These endpoints validate the **Staff** table and its relationship to **User**.
+
+### GET `/api/staff`
+- Access Control: Admin only
+- Success (200):
+  - Login as admin → Execute → Expect `200` array.
+- Error 401:
+  - Remove token → Expect `401`.
+- Error 403:
+  - Login as customer or staff → Expect `403`.
+
+### POST `/api/staff`
+- Access Control: Admin only
+- Setup:
+  1. Use `POST /api/auth/signup` to create a new user with `role: "staff"`.
+  2. Copy the returned `id` as `newStaffUserId`.
+- Success (201):
+  - Login as admin → Body: `{ "userId": newStaffUserId, "employee_role": "washer", "active_flag": true }` → Expect `201`.
+- Error 400 (validation):
+  - Remove `userId` or `employee_role` → Expect `400`.
+- Error 400 (foreign key):
+  - Use `userId = 999999` → Expect `400`.
+- Error 401/403:
+  - Remove token → `401`; login as non-admin → `403`.
+
+### GET `/api/staff/me`
+- Access Control: Authenticated
+- Success (200):
+  - Login as the seeded staff user (`staff@laundry.local`) → Execute → Expect `200` staff profile with an `id`.
+  - Save: `staffId = <id>`.
+- Error 401:
+  - Remove token → Expect `401`.
+- Error 404:
+  - Login as customer and call it (customer has no staff profile) → Expect `404`.
+
+### GET `/api/staff/{id}`
+- Access Control: Admin or “self”
+- Success (200):
+  - Login as staff → set `{id} = staffId` (from `/api/staff/me`) → Expect `200`.
+- Error 400:
+  - `{id}=0` → Expect `400`.
+- Error 401:
+  - Remove token → Expect `401`.
+- Error 403:
+  - Create a second staff profile using the POST steps above (admin creates staff record) and save its id as `otherStaffId`.
+  - Login as staff → `GET /api/staff/{id}` with `{id} = otherStaffId` → Expect `403`.
+- Error 404:
+  - `{id}=999999` → Expect `404`.
+
+### PUT `/api/staff/{id}`
+- Access Control: Admin only
+- Success (200):
+  - Login as admin → `{id} = staffId` → body `{ "employee_role": "driver" }` → Expect `200`.
+- Error 400:
+  - Empty body `{}` → Expect `400`.
+- Error 401/403/404:
+  - Remove token → `401`; login as non-admin → `403`; `{id}=999999` → `404`.
+
+### DELETE `/api/staff/{id}`
+- Access Control: Admin only
+- Success (204):
+  - Use the staff record you created in POST (not the seeded one): `{id} = otherStaffId` → Expect `204`.
+- Error 400/401/403/404:
+  - `{id}=0` → `400`; remove token → `401`; non-admin → `403`; `{id}=999999` → `404`.
+
+---
+
+## Staff Assignments (Join Table) — `/api/staff-orders`
+
+These endpoints validate the **StaffOrder** join table between **Staff** and **Order**.
+
+### GET `/api/staff-orders`
+- Access Control: Admin only
+- Success (200):
+  - Login as admin → Execute → Expect `200` array.
+- Error 401/403:
+  - Remove token → `401`; non-admin → `403`.
+
+### POST `/api/staff-orders`
+- Access Control: Admin only
+- Setup:
+  - Ensure you have:
+    - `customerOrderId` (from Orders capture)
+    - `staffId` (from `GET /api/staff/me` as seeded staff)
+- Success (201):
+  - Login as admin → Body: `{ "orderId": customerOrderId, "staffId": staffId }` → Expect `201`.
+- Error 409:
+  - Execute the same request again (same orderId + staffId) → Expect `409`.
+- Error 400:
+  - Use `orderId=999999` or `staffId=999999` → Expect `400`.
+- Error 401/403:
+  - Remove token → `401`; non-admin → `403`.
+
+### DELETE `/api/staff-orders`
+- Access Control: Admin only
+- Success (204):
+  - Login as admin → Body: `{ "orderId": customerOrderId, "staffId": staffId }` → Expect `204`.
+- Error 404:
+  - Execute the same delete again (assignment no longer exists) → Expect `404`.
+- Error 400:
+  - Use invalid ids (0 or negative) → Expect `400`.
+- Error 401/403:
+  - Remove token → `401`; non-admin → `403`.
+
+### GET `/api/staff-orders/me`
+- Access Control: Authenticated
+- Success (200):
+  - Login as seeded staff → Execute → Expect `200` array.
+  - If empty, login as admin and create an assignment using `POST /api/staff-orders`, then retry `GET /api/staff-orders/me`.
+- Error 401:
+  - Remove token → Expect `401`.
+- Error 404:
+  - Login as customer and call it (customer has no staff profile) → Expect `404`.

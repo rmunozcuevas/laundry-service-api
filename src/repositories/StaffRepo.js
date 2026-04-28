@@ -49,7 +49,7 @@ export async function getAll({ search, sortBy, order, offset, limit }) {
   const sortKey = SORTABLE_FIELDS.has(sortBy) ? sortBy : 'id';
   const sortOrder = ORDER_VALUES.has(order) ? order : 'asc';
 
-  const staff = await prisma.staff.findMany({
+  return prisma.staff.findMany({
     where: conditions,
     orderBy: { [sortKey]: sortOrder },
     take: limit,
@@ -65,12 +65,10 @@ export async function getAll({ search, sortBy, order, offset, limit }) {
       },
     },
   });
-
-  return staff;
 }
 
 export async function getById(id) {
-  const staff = await prisma.staff.findUnique({
+  return prisma.staff.findUnique({
     where: { id },
     include: {
       user: {
@@ -89,14 +87,33 @@ export async function getById(id) {
       },
     },
   });
+}
 
-  return staff;
+export async function getByUserId(userId) {
+  return prisma.staff.findFirst({
+    where: { userId },
+    include: {
+      user: {
+        select: {
+          id: true,
+          email: true,
+          name: true,
+          role: true,
+        },
+      },
+      staffOrders: {
+        select: {
+          order_id: true,
+          staff_id: true,
+        },
+      },
+    },
+  });
 }
 
 export async function create(staffData) {
   try {
-    const staff = await prisma.staff.create({ data: staffData });
-    return staff;
+    return await prisma.staff.create({ data: staffData });
   } catch (error) {
     // Foreign key constraint failed (usually: userId doesn't exist)
     if (error.code === 'P2003') {
@@ -110,12 +127,10 @@ export async function create(staffData) {
 
 export async function update(id, updatedStaff) {
   try {
-    const updated = await prisma.staff.update({
+    return await prisma.staff.update({
       where: { id },
       data: updatedStaff,
     });
-
-    return updated;
   } catch (error) {
     if (error.code === 'P2025') return null;
     throw error;
@@ -124,11 +139,11 @@ export async function update(id, updatedStaff) {
 
 export async function remove(id) {
   try {
-    const deletedStaff = await prisma.staff.delete({
-      where: { id },
+    // Ensure FK restrictions don’t block staff deletion.
+    return await prisma.$transaction(async (tx) => {
+      await tx.staffOrder.deleteMany({ where: { staff_id: id } });
+      return tx.staff.delete({ where: { id } });
     });
-
-    return deletedStaff;
   } catch (error) {
     if (error.code === 'P2025') return null;
     throw error;
