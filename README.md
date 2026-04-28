@@ -2,6 +2,11 @@
 
 Final Project for ITSC-4166.
 
+Live links (fill these in for your submission PDF):
+- Render API: `<your-render-url>`
+- Swagger UI: `<your-render-url>/api-docs`
+- Repo: `https://github.com/rmunozcuevas/laundry-service-api`
+
 ## Local Dev
 
 - Install: `npm install`
@@ -16,6 +21,9 @@ Final Project for ITSC-4166.
 Seeded logins:
 - Admin: `admin@laundry.local` / `admin-password-123`
 - Customer: `customer@laundry.local` / `customer-password-123`
+- Customer2: `customer2@laundry.local` / `customer2-password-123`
+- Staff: `staff@laundry.local` / `staff-password-123`
+- Staff2: `staff2@laundry.local` / `staff2-password-123`
 
 ## Render Deployment Notes
 
@@ -24,12 +32,16 @@ Environment variables required on Render:
 - `JWT_SECRET`
 - `JWT_EXPIRES_IN`
 
-Build command suggestion (runs migrations + seed automatically):
-- `npx prisma migrate deploy && npm run seed:db`
+Build command (runs migrations + seed automatically):
+- `npm run render-build`
 
 Start command:
 - `npm start`
 
 ## Testing Plan
 
-See `/Users/raymundomc/Desktop/backend_app_development/laundry_service/docs/testing-plan.md`.
+See `docs/testing-plan.md`.
+
+## API Documentation
+
+OpenAPI spec: `docs/openapi.yaml` (Swagger UI is served at `/api-docs`).

@@ -18,6 +18,10 @@ If running locally:
 1. (Optional reset) `SEED_PURGE=true npm run seed:db`
 2. Otherwise: `npm run seed:db`
 
+If you are using the provided Render build script, it runs:
+- `npm run seed:db` then `npm run seed`
+For grading, `npm run seed:db` is the only required seed (it creates all core tables + relationships).
+
 Optional DB “flow” sanity check (verifies tables link correctly):
 - Run: `node scripts/verify-db-flow.js`
 - Expect output: `DB flow check: OK` and an example `StaffOrder` assignment with linked `order` + `staff`.
@@ -27,12 +31,37 @@ Seeded logins (known credentials):
 - Admin
   - Email: `admin@laundry.local`
   - Password: `admin-password-123`
-- Customer (owns seeded Orders/Garments/Subscription)
+- Customer (owns seeded Orders/Garments/Subscriptions; has an active subscription)
   - Email: `customer@laundry.local`
   - Password: `customer-password-123`
-- Staff (non-admin “intruder” user for 403 tests)
+- Customer2 (second customer account; useful for cross-ownership 403 tests)
+  - Email: `customer2@laundry.local`
+  - Password: `customer2-password-123`
+- Staff (seeded staff profile exists; useful for “non-admin” 403 tests)
   - Email: `staff@laundry.local`
   - Password: `staff-password-123`
+- Staff2 (second staff account; useful for “other staff” 403 tests)
+  - Email: `staff2@laundry.local`
+  - Password: `staff2-password-123`
+
+Seeded data quick reference (created by `npm run seed:db`):
+- Pricing tiers:
+  - (0–5kg) base $15, extra $3/kg
+  - (5.01–10kg) base $25, extra $3/kg
+  - (10.01–20kg) base $40, extra $3.5/kg
+  - (20.01–30kg) base $55, extra $4/kg
+- Customer seeded Orders (email `customer@laundry.local`):
+  - `status: "seed"`, `weight_kg: 7.5`, expected `total_price: 22.5` (10% discount)
+  - `status: "seed-2"`, `weight_kg: 3.2`, expected `total_price: 13.5` (10% discount)
+  - `status: "seed-heavy"`, `weight_kg: 42.5`, expected `total_price: 94.5` (10% discount, uses “highest tier + extra kg”)
+- Customer2 seeded Orders (email `customer2@laundry.local`):
+  - `status: "seed-c2-seed"`, `weight_kg: 7.5`, expected `total_price: 25` (no active subscription)
+  - `status: "seed-c2-seed-2"`, `weight_kg: 3.2`, expected `total_price: 15` (no active subscription)
+- Seeded StaffOrder assignments:
+  - The order with `status: "seed"` is assigned to `staff@laundry.local`
+  - The order with `status: "seed-2"` is assigned to `staff2@laundry.local`
+
+Note: `pickup_date` is generated at seed-time (today’s date in UTC). Use `status`/`weight_kg` for deterministic matching.
 
 ---
 
@@ -47,6 +76,14 @@ Seeded logins (known credentials):
 7. Paste the token into the bearerAuth input → click **Authorize**
 
 Tip: To test `401 Unauthorized`, click **Authorize** again → **Logout** (or clear the token).
+
+## 1A) Recommended Grading Flow (Admin → Customer → Staff)
+
+Do this order so the grader can move quickly without backtracking tokens:
+1. Login as **Admin** → run admin-only endpoints first: PricingTiers, Subscriptions (admin list), Staff, StaffOrders
+2. Login as **Customer** → run customer-owned endpoints: Orders, Garments, Subscriptions (me + CRUD)
+3. Login as **Staff** → run staff endpoints: Staff (me + self GET), Orders (create), StaffOrders (me)
+
 
 ---
 
@@ -68,6 +105,15 @@ Do these once, then reuse the IDs in later steps.
      - Save: `customerSubscriptionId = <id>`
    - If empty: create one using `POST /api/subscriptions`, then repeat `GET /api/subscriptions/me`.
 
+### As Customer2 (optional, for 403 cross-ownership tests)
+1. Login as **Customer2** and Authorize.
+2. `GET /api/orders` → Execute → pick an order (prefer `status` that starts with `seed-c2-`).
+   - Save: `customer2OrderId = <id>` and `customer2UserId = <userId>`
+3. `GET /api/garments` → Execute → pick any garment.
+   - Save: `customer2GarmentId = <id>`
+4. `GET /api/subscriptions/me` → Execute → pick the seeded row.
+   - Save: `customer2SubscriptionId = <id>`
+
 ### As Staff
 1. Login as **Staff** and Authorize.
 2. Get your staff profile (this confirms your Staff table row exists):
@@ -76,6 +122,11 @@ Do these once, then reuse the IDs in later steps.
 3. Create an order so you can confirm non-admin order creation works:
    - `POST /api/orders` with body `{ "weight_kg": 2.5, "status": "pending" }`
    - Save: `staffOrderId = <id>` from the response.
+
+### As Staff2 (optional, for 403 “other staff” tests)
+1. Login as **Staff2** and Authorize.
+2. `GET /api/staff/me` → Execute.
+   - Save: `staff2Id = <id>`
 
 ### As Admin
 1. Login as **Admin** and Authorize.
@@ -200,12 +251,13 @@ Recommended fixed IDs for “not found” tests:
   - Admin: can create garments for any order
 - Success (201, customer):
   - Body example:
-    - `{ "orderId": customerOrderId, "type": "Shirt", "quantity": 2, "care_instructions": "Wash cold", "delicate_flag": false, "unit_price": 3.5 }`
+    - `{ "orderId": customerOrderId, "type": "Shirt", "quantity": 2, "care_instructions": "Wash cold", "delicate_flag": true, "unit_price": 3.5 }`
   - Expect `201`.
 - Error 400 (validation):
-  - Set `quantity = 0` or remove a required field (e.g. remove `type`) → Expect `400`.
+  - Set `quantity = 0` OR set `delicate_flag = false` OR remove a required field (e.g. remove `type`) → Expect `400`.
 - Error 403 (ownership):
-  - Login as staff, try creating a garment using `{ "orderId": customerOrderId, ... }` → Expect `403`.
+  - Login as staff, try creating a garment on a customer-owned order (use a VALID body so you don't get `400` first):
+    - `{ "orderId": customerOrderId, "type": "Staff Attempt Shirt", "quantity": 1, "care_instructions": "Wash cold", "delicate_flag": true, "unit_price": 3.5 }` → Expect `403`.
 - Error 404 (non-admin + missing order):
   - As customer, use `orderId = 999999` → Expect `404` (order not found during ownership check).
 - Error 400 (admin + missing order):
@@ -402,8 +454,10 @@ These endpoints validate the **Staff** table and its relationship to **User**.
 - Error 401:
   - Remove token → Expect `401`.
 - Error 403:
-  - Create a second staff profile using the POST steps above (admin creates staff record) and save its id as `otherStaffId`.
-  - Login as staff → `GET /api/staff/{id}` with `{id} = otherStaffId` → Expect `403`.
+  - Use a different staff id than your own (recommended: the seeded Staff2):
+    1. Login as staff2 → `GET /api/staff/me` → save `staff2Id`
+    2. Login as staff → `GET /api/staff/{id}` with `{id} = staff2Id` → Expect `403`.
+  - (Alternate) Create a second staff profile using the POST steps above and use `otherStaffId`.
 - Error 404:
   - `{id}=999999` → Expect `404`.
 
@@ -439,11 +493,12 @@ These endpoints validate the **StaffOrder** join table between **Staff** and **O
 ### POST `/api/staff-orders`
 - Access Control: Admin only
 - Setup:
-  - Ensure you have:
-    - `customerOrderId` (from Orders capture)
-    - `staffId` (from `GET /api/staff/me` as seeded staff)
+  - Use an order that is **not already assigned** (seed creates at least 2 assignments).
+  - Recommended deterministic choice:
+    - Login as customer → `GET /api/orders` → pick the order with `status: "seed-heavy"` → save `customerHeavyOrderId`.
+    - Login as staff → `GET /api/staff/me` → save `staffId`.
 - Success (201):
-  - Login as admin → Body: `{ "orderId": customerOrderId, "staffId": staffId }` → Expect `201`.
+  - Login as admin → Body: `{ "orderId": customerHeavyOrderId, "staffId": staffId }` → Expect `201`.
 - Error 409:
   - Execute the same request again (same orderId + staffId) → Expect `409`.
 - Error 400:
@@ -454,7 +509,8 @@ These endpoints validate the **StaffOrder** join table between **Staff** and **O
 ### DELETE `/api/staff-orders`
 - Access Control: Admin only
 - Success (204):
-  - Login as admin → Body: `{ "orderId": customerOrderId, "staffId": staffId }` → Expect `204`.
+  - Delete the assignment you created in POST:
+    - Login as admin → Body: `{ "orderId": customerHeavyOrderId, "staffId": staffId }` → Expect `204`.
 - Error 404:
   - Execute the same delete again (assignment no longer exists) → Expect `404`.
 - Error 400:

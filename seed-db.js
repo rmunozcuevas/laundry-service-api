@@ -23,6 +23,14 @@ const SEED_USERS = {
     phone: '555-222-2222',
     role: 'customer',
   },
+  customer2: {
+    email: 'customer2@laundry.local',
+    password: 'customer2-password-123',
+    name: 'Customer Two',
+    address: '456 Laundry Lane',
+    phone: '555-222-3333',
+    role: 'customer',
+  },
   staff: {
     email: 'staff@laundry.local',
     password: 'staff-password-123',
@@ -31,12 +39,22 @@ const SEED_USERS = {
     phone: '555-333-3333',
     role: 'staff',
   },
+  staff2: {
+    email: 'staff2@laundry.local',
+    password: 'staff2-password-123',
+    name: 'Staff Two',
+    address: '100 Backroom Blvd',
+    phone: '555-333-4444',
+    role: 'staff',
+  },
 };
 
 const PRICING_TIERS = [
   { min_weight_kg: 0, max_weight_kg: 5, base_price: 15, extra_kg_price: 3 },
   { min_weight_kg: 5.01, max_weight_kg: 10, base_price: 25, extra_kg_price: 3 },
   { min_weight_kg: 10.01, max_weight_kg: 20, base_price: 40, extra_kg_price: 3.5 },
+  // Useful for testing weights beyond 20kg without falling back immediately to "highest tier + extra kg".
+  { min_weight_kg: 20.01, max_weight_kg: 30, base_price: 55, extra_kg_price: 4 },
 ];
 
 const SEED_ORDERS = [
@@ -80,6 +98,27 @@ const SEED_ORDERS = [
       },
     ],
   },
+  // Exceeds the tiers above: exercises "highest tier + extra kg" billing behavior.
+  {
+    status: 'seed-heavy',
+    weight_kg: 42.5,
+    garments: [
+      {
+        type: 'Comforter',
+        quantity: 1,
+        care_instructions: 'Cold wash, low heat dry',
+        delicate_flag: false,
+        unit_price: 12.0,
+      },
+      {
+        type: 'Delicate Blouse',
+        quantity: 2,
+        care_instructions: 'Hand wash only',
+        delicate_flag: true,
+        unit_price: 5.5,
+      },
+    ],
+  },
 ];
 
 function todayYyyyMmDd() {
@@ -88,6 +127,35 @@ function todayYyyyMmDd() {
 
 function calcTotalFromGarments(garments) {
   return garments.reduce((sum, g) => sum + Number(g.quantity) * Number(g.unit_price), 0);
+}
+
+function roundMoney(n) {
+  return Math.round((Number(n) + Number.EPSILON) * 100) / 100;
+}
+
+function applyDiscount(rawTotal, discountPercentage) {
+  const pct = Number.isFinite(Number(discountPercentage)) ? Number(discountPercentage) : 0;
+  const clamped = Math.max(0, Math.min(100, Math.trunc(pct)));
+  return rawTotal * (1 - clamped / 100);
+}
+
+function calcTotalFromWeight({ weight_kg, tiers, discount_percentage }) {
+  const w = Number(weight_kg);
+  if (!Number.isFinite(w) || w <= 0) return 0;
+
+  // Prefer a tier that covers the weight.
+  const covering = tiers.find((t) => w >= Number(t.min_weight_kg) && w <= Number(t.max_weight_kg));
+  if (covering) {
+    return roundMoney(applyDiscount(Number(covering.base_price), discount_percentage));
+  }
+
+  // Otherwise bill off the highest tier + extra kg.
+  const highest = [...tiers].sort((a, b) => Number(b.max_weight_kg) - Number(a.max_weight_kg))[0];
+  if (!highest) return 0;
+
+  const extraKg = Math.max(0, w - Number(highest.max_weight_kg));
+  const raw = Number(highest.base_price) + extraKg * Number(highest.extra_kg_price);
+  return roundMoney(applyDiscount(raw, discount_percentage));
 }
 
 async function ensureUser(user) {
@@ -175,7 +243,17 @@ async function upsertSeedOrderWithGarments({ userId, status, pickup_date, weight
       data: garments.map((g) => ({ ...g, orderId: existing.id })),
     });
 
-    const total_price = calcTotalFromGarments(garments);
+    // Keep seeded rows consistent with API logic: total_price derived from weight/pricing tiers + active subscription.
+    const sub = await prisma.subscriptions.findFirst({
+      where: { userId, active_flag: true },
+      orderBy: { id: 'desc' },
+    });
+    const tiers = await prisma.pricingTier.findMany();
+    const total_price = calcTotalFromWeight({
+      weight_kg,
+      tiers,
+      discount_percentage: sub?.discount_percentage ?? 0,
+    });
 
     const order = await prisma.order.update({
       where: { id: existing.id },
@@ -189,7 +267,16 @@ async function upsertSeedOrderWithGarments({ userId, status, pickup_date, weight
     return { order, garmentsCreated: created.count };
   }
 
-  const total_price = calcTotalFromGarments(garments);
+  const sub = await prisma.subscriptions.findFirst({
+    where: { userId, active_flag: true },
+    orderBy: { id: 'desc' },
+  });
+  const tiers = await prisma.pricingTier.findMany();
+  const total_price = calcTotalFromWeight({
+    weight_kg,
+    tiers,
+    discount_percentage: sub?.discount_percentage ?? 0,
+  });
 
   const order = await prisma.order.create({
     data: {
@@ -230,7 +317,18 @@ async function purgeSeedData() {
   // Staff rows depend on user.
   await prisma.staff.deleteMany({ where: { userId: { in: userIds } } });
 
-  // NOTE: We intentionally do NOT delete users or pricing tiers.
+  // NOTE: We intentionally do NOT delete users.
+  // For PricingTiers, keep only tiers that match this seed set when purging (helps keep testing deterministic).
+  await prisma.pricingTier.deleteMany({
+    where: {
+      NOT: {
+        OR: PRICING_TIERS.map((t) => ({
+          min_weight_kg: t.min_weight_kg,
+          max_weight_kg: t.max_weight_kg,
+        })),
+      },
+    },
+  });
 }
 
 async function main() {
@@ -244,18 +342,28 @@ async function main() {
 
   const admin = await ensureUser(SEED_USERS.admin);
   const customer = await ensureUser(SEED_USERS.customer);
+  const customer2 = await ensureUser(SEED_USERS.customer2);
   const staffUser = await ensureUser(SEED_USERS.staff);
+  const staffUser2 = await ensureUser(SEED_USERS.staff2);
 
   const staff = await ensureStaffForUser(staffUser.id);
+  const staff2 = await ensureStaffForUser(staffUser2.id);
 
   const tiers = [];
   for (const tier of PRICING_TIERS) tiers.push(await ensurePricingTier(tier));
 
-  const sub = await ensureSubscription({
+  const customerSub = await ensureSubscription({
     userId: customer.id,
     plan: 'basic',
     discount_percentage: 10,
     active_flag: true,
+  });
+  // A second user with no active subscription is useful to test order totals with no discount.
+  await ensureSubscription({
+    userId: customer2.id,
+    plan: 'basic',
+    discount_percentage: 0,
+    active_flag: false,
   });
 
   const pickup_date = todayYyyyMmDd();
@@ -272,6 +380,19 @@ async function main() {
     seededOrders.push(seeded);
   }
 
+  // Seed a smaller set of orders for the second customer.
+  const seededOrdersCustomer2 = [];
+  for (const o of SEED_ORDERS.slice(0, 2)) {
+    const seeded = await upsertSeedOrderWithGarments({
+      userId: customer2.id,
+      status: `seed-c2-${o.status}`,
+      pickup_date,
+      weight_kg: o.weight_kg,
+      garments: o.garments,
+    });
+    seededOrdersCustomer2.push(seeded);
+  }
+
   // Assign the first seeded order to staff.
   const firstOrderId = seededOrders[0]?.order?.id;
   if (firstOrderId) {
@@ -285,13 +406,33 @@ async function main() {
     }
   }
 
+  // Assign a different order to staff2 (if available).
+  const secondOrderId = seededOrders[1]?.order?.id ?? seededOrders[0]?.order?.id;
+  if (secondOrderId) {
+    const existingLink = await prisma.staffOrder.findFirst({
+      where: { order_id: secondOrderId, staff_id: staff2.id },
+    });
+    if (!existingLink) {
+      await prisma.staffOrder.create({
+        data: { order_id: secondOrderId, staff_id: staff2.id },
+      });
+    }
+  }
+
   console.log('Seed complete.');
-  console.log(`Users: admin=${admin.id}, customer=${customer.id}, staffUser=${staffUser.id}`);
-  console.log(`Staff: id=${staff.id}`);
+  console.log(
+    `Users: admin=${admin.id}, customer=${customer.id}, customer2=${customer2.id}, staffUser=${staffUser.id}, staffUser2=${staffUser2.id}`,
+  );
+  console.log(`Staff: id=${staff.id}, staff2=${staff2.id}`);
   console.log(`PricingTiers: ${tiers.length}`);
-  console.log(`Subscription: id=${sub.id} (discount=${sub.discount_percentage}%)`);
+  console.log(`Subscription: id=${customerSub.id} (discount=${customerSub.discount_percentage}%)`);
   console.log(
     `Orders: ${seededOrders
+      .map((x) => `${x.order.id} (${x.order.status}, garments=${x.garmentsCreated}, total=$${x.order.total_price})`)
+      .join(', ')}`,
+  );
+  console.log(
+    `Orders(customer2): ${seededOrdersCustomer2
       .map((x) => `${x.order.id} (${x.order.status}, garments=${x.garmentsCreated}, total=$${x.order.total_price})`)
       .join(', ')}`,
   );

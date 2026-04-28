@@ -520,6 +520,14 @@ paths:
                 type: array
                 items:
                   $ref: '#/components/schemas/Garment'
+              example:
+                - id: 12
+                  orderId: 5
+                  type: Blue Shirt
+                  quantity: 2
+                  care_instructions: Wash cold
+                  delicate_flag: true
+                  unit_price: 3.5
         '400':
           description: Validation failed
           content:
@@ -552,6 +560,13 @@ paths:
           application/json:
             schema:
               $ref: '#/components/schemas/GarmentCreate'
+            example:
+              orderId: 5
+              type: Blue Shirt
+              quantity: 2
+              care_instructions: Wash cold
+              delicate_flag: true
+              unit_price: 3.5
       responses:
         '201':
           description: Created
@@ -559,6 +574,14 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/Garment'
+              example:
+                id: 12
+                orderId: 5
+                type: Blue Shirt
+                quantity: 2
+                care_instructions: Wash cold
+                delicate_flag: true
+                unit_price: 3.5
         '400':
           description: Validation failed
           content:
@@ -585,6 +608,14 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/Garment'
+              example:
+                id: 12
+                orderId: 5
+                type: Blue Shirt
+                quantity: 2
+                care_instructions: Wash cold
+                delicate_flag: true
+                unit_price: 3.5
         '400':
           description: Validation failed
           content:
@@ -625,6 +656,8 @@ paths:
           application/json:
             schema:
               $ref: '#/components/schemas/GarmentUpdate'
+            example:
+              quantity: 5
       responses:
         '200':
           description: OK
@@ -632,6 +665,14 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/Garment'
+              example:
+                id: 12
+                orderId: 5
+                type: Blue Shirt
+                quantity: 5
+                care_instructions: Wash cold
+                delicate_flag: true
+                unit_price: 3.5
         '400':
           description: Validation failed
           content:
@@ -705,6 +746,14 @@ paths:
                 type: array
                 items:
                   $ref: '#/components/schemas/Order'
+              example:
+                - id: 1
+                  userId: 10
+                  pickup_date: '2026-04-20'
+                  weight_kg: 7.5
+                  status: pending
+                  total_price: 23.5
+                  created_at: '2026-04-18T16:30:00.000Z'
         '400':
           description: Validation failed
           content:
@@ -737,6 +786,9 @@ paths:
           application/json:
             schema:
               $ref: '#/components/schemas/OrderCreate'
+            example:
+              weight_kg: 2.5
+              status: pending
       responses:
         '201':
           description: Created
@@ -744,6 +796,14 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/Order'
+              example:
+                id: 1
+                userId: 10
+                pickup_date: '2026-04-20'
+                weight_kg: 2.5
+                status: pending
+                total_price: 15
+                created_at: '2026-04-18T16:30:00.000Z'
         '400':
           description: Validation failed
           content:
@@ -770,6 +830,14 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/Order'
+              example:
+                id: 1
+                userId: 10
+                pickup_date: '2026-04-20'
+                weight_kg: 7.5
+                status: pending
+                total_price: 23.5
+                created_at: '2026-04-18T16:30:00.000Z'
         '400':
           description: Validation failed
           content:
@@ -810,6 +878,8 @@ paths:
           application/json:
             schema:
               $ref: '#/components/schemas/OrderUpdate'
+            example:
+              status: washing
       responses:
         '200':
           description: OK
@@ -817,6 +887,14 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/Order'
+              example:
+                id: 1
+                userId: 10
+                pickup_date: '2026-04-20'
+                weight_kg: 7.5
+                status: washing
+                total_price: 23.5
+                created_at: '2026-04-18T16:30:00.000Z'
         '400':
           description: Validation failed
           content:
@@ -869,6 +947,13 @@ paths:
           application/json:
             schema:
               $ref: '#/components/schemas/SignUpRequest'
+            example:
+              email: newuser1@laundry.local
+              password: Password123!
+              name: New User
+              address: 1 Main St
+              phone: 555-000-0000
+              role: customer
       responses:
         '201':
           description: Created
@@ -876,6 +961,13 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/UserPublic'
+              example:
+                id: 123
+                email: newuser1@laundry.local
+                name: New User
+                address: 1 Main St
+                phone: 555-000-0000
+                role: customer
         '400':
           description: Validation failed
           content:
@@ -899,6 +991,9 @@ paths:
           application/json:
             schema:
               $ref: '#/components/schemas/LoginRequest'
+            example:
+              email: customer@laundry.local
+              password: customer-password-123
       responses:
         '200':
           description: OK
@@ -906,6 +1001,8 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/AuthTokenResponse'
+              example:
+                accessToken: <jwt>
         '400':
           description: Validation failed
           content:
@@ -977,6 +1074,12 @@ paths:
                 type: array
                 items:
                   $ref: '#/components/schemas/PricingTier'
+              example:
+                - id: 1
+                  min_weight_kg: 0
+                  max_weight_kg: 5
+                  base_price: 15
+                  extra_kg_price: 3
         '400':
           description: Validation failed
           content:
@@ -995,6 +1098,11 @@ paths:
           application/json:
             schema:
               $ref: '#/components/schemas/PricingTierCreate'
+            example:
+              min_weight_kg: 21
+              max_weight_kg: 30
+              base_price: 55
+              extra_kg_price: 4
       responses:
         '201':
           description: Created
@@ -1002,6 +1110,12 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/PricingTier'
+              example:
+                id: 10
+                min_weight_kg: 21
+                max_weight_kg: 30
+                base_price: 55
+                extra_kg_price: 4
         '400':
           description: Validation failed
           content:
@@ -1039,6 +1153,12 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/PricingTier'
+              example:
+                id: 1
+                min_weight_kg: 0
+                max_weight_kg: 5
+                base_price: 15
+                extra_kg_price: 3
         '400':
           description: Validation failed
           content:
@@ -1070,6 +1190,8 @@ paths:
           application/json:
             schema:
               $ref: '#/components/schemas/PricingTierUpdate'
+            example:
+              base_price: 99
       responses:
         '200':
           description: OK
@@ -1077,6 +1199,12 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/PricingTier'
+              example:
+                id: 1
+                min_weight_kg: 0
+                max_weight_kg: 5
+                base_price: 99
+                extra_kg_price: 3
         '400':
           description: Validation failed
           content:
@@ -1189,6 +1317,12 @@ paths:
                 type: array
                 items:
                   $ref: '#/components/schemas/Subscription'
+              example:
+                - id: 1
+                  userId: 10
+                  plan: basic
+                  discount_percentage: 10
+                  active_flag: true
         '401':
           description: Not authenticated
           content:
@@ -1213,6 +1347,10 @@ paths:
           application/json:
             schema:
               $ref: '#/components/schemas/SubscriptionCreate'
+            example:
+              plan: basic
+              discount_percentage: 10
+              active_flag: true
       responses:
         '201':
           description: Created
@@ -1220,6 +1358,12 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/Subscription'
+              example:
+                id: 1
+                userId: 10
+                plan: basic
+                discount_percentage: 10
+                active_flag: true
         '400':
           description: Validation failed
           content:
@@ -1248,6 +1392,12 @@ paths:
                 type: array
                 items:
                   $ref: '#/components/schemas/Subscription'
+              example:
+                - id: 1
+                  userId: 10
+                  plan: basic
+                  discount_percentage: 10
+                  active_flag: true
         '401':
           description: Not authenticated
           content:
@@ -1275,6 +1425,12 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/Subscription'
+              example:
+                id: 1
+                userId: 10
+                plan: basic
+                discount_percentage: 10
+                active_flag: true
         '401':
           description: Not authenticated
           content:
@@ -1312,6 +1468,8 @@ paths:
           application/json:
             schema:
               $ref: '#/components/schemas/SubscriptionUpdate'
+            example:
+              discount_percentage: 15
       responses:
         '200':
           description: OK
@@ -1319,6 +1477,12 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/Subscription'
+              example:
+                id: 1
+                userId: 10
+                plan: basic
+                discount_percentage: 15
+                active_flag: true
         '400':
           description: Validation failed
           content:
@@ -1438,6 +1602,16 @@ paths:
                         email: { type: string, example: staff@laundry.local }
                         name: { type: string, example: Staff User }
                         role: { type: string, example: staff }
+              example:
+                - id: 1
+                  userId: 3
+                  employee_role: washer
+                  active_flag: true
+                  user:
+                    id: 3
+                    email: staff@laundry.local
+                    name: Staff User
+                    role: staff
         '400':
           description: Validation failed
           content:
@@ -1473,6 +1647,10 @@ paths:
                 userId: { type: integer, example: 3 }
                 employee_role: { type: string, example: washer }
                 active_flag: { type: boolean, example: true }
+            example:
+              userId: 3
+              employee_role: washer
+              active_flag: true
       responses:
         '201':
           description: Created
@@ -1485,6 +1663,11 @@ paths:
                   userId: { type: integer, example: 3 }
                   employee_role: { type: string, example: washer }
                   active_flag: { type: boolean, example: true }
+              example:
+                id: 10
+                userId: 3
+                employee_role: washer
+                active_flag: true
         '400':
           description: Validation failed
           content:
@@ -1523,6 +1706,19 @@ paths:
                   userId: { type: integer, example: 3 }
                   employee_role: { type: string, example: washer }
                   active_flag: { type: boolean, example: true }
+              example:
+                id: 1
+                userId: 3
+                employee_role: washer
+                active_flag: true
+                user:
+                  id: 3
+                  email: staff@laundry.local
+                  name: Staff User
+                  role: staff
+                staffOrders:
+                  - order_id: 1
+                    staff_id: 1
         '401':
           description: Not authenticated
           content:
@@ -1557,6 +1753,19 @@ paths:
             application/json:
               schema:
                 type: object
+              example:
+                id: 1
+                userId: 3
+                employee_role: washer
+                active_flag: true
+                user:
+                  id: 3
+                  email: staff@laundry.local
+                  name: Staff User
+                  role: staff
+                staffOrders:
+                  - order_id: 1
+                    staff_id: 1
         '400':
           description: Validation failed
           content:
@@ -1603,6 +1812,8 @@ paths:
               properties:
                 employee_role: { type: string, example: driver }
                 active_flag: { type: boolean, example: false }
+            example:
+              employee_role: driver
       responses:
         '200':
           description: OK
@@ -1610,6 +1821,11 @@ paths:
             application/json:
               schema:
                 type: object
+              example:
+                id: 1
+                userId: 3
+                employee_role: driver
+                active_flag: true
         '400':
           description: Validation failed
           content:
@@ -1720,6 +1936,20 @@ paths:
                   properties:
                     order_id: { type: integer, example: 1 }
                     staff_id: { type: integer, example: 2 }
+              example:
+                - order_id: 1
+                  staff_id: 2
+                  staff:
+                    id: 2
+                    userId: 3
+                    employee_role: washer
+                    active_flag: true
+                  order:
+                    id: 1
+                    userId: 10
+                    pickup_date: '2026-04-20'
+                    status: seed
+                    total_price: 22.5
         '400':
           description: Validation failed
           content:
@@ -1754,6 +1984,9 @@ paths:
               properties:
                 orderId: { type: integer, example: 1 }
                 staffId: { type: integer, example: 2 }
+            example:
+              orderId: 1
+              staffId: 2
       responses:
         '201':
           description: Created
@@ -1764,6 +1997,9 @@ paths:
                 properties:
                   order_id: { type: integer, example: 1 }
                   staff_id: { type: integer, example: 2 }
+              example:
+                order_id: 1
+                staff_id: 2
         '400':
           description: Validation failed
           content:
@@ -1865,6 +2101,9 @@ paths:
                   properties:
                     order_id: { type: integer, example: 1 }
                     staff_id: { type: integer, example: 2 }
+              example:
+                - order_id: 1
+                  staff_id: 2
         '400':
           description: Validation failed
           content:
