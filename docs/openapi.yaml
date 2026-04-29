@@ -3,8 +3,12 @@ info:
   title: Laundry Service API
   version: 0.1.0
 servers:
-  - url: /
+  # Note: Paths in this spec already start with `/api/...`, so the server url should NOT end with `/api`.
+  - url: https://laundry-service-api-k1h3.onrender.com
+    description: Production Server (Render)
   - url: http://localhost:3000
+    description: Local Development Server
+
 tags:
   - name: Garments
     description: Operations related to Garments

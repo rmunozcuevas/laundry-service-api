@@ -3,8 +3,8 @@
 Final Project for ITSC-4166.
 
 Live links (fill these in for your submission PDF):
-- Render API: `<your-render-url>`
-- Swagger UI: `<your-render-url>/api-docs`
+- Render API (base): `https://laundry-service-api-k1h3.onrender.com` (endpoints live under `/api`)
+- Swagger UI: `https://laundry-service-api-k1h3.onrender.com/api-docs`
 - Repo: `https://github.com/rmunozcuevas/laundry-service-api`
 
 ## Local Dev
