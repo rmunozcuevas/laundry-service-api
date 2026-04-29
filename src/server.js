@@ -30,6 +30,11 @@ try {
 
 app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(specs));
 
+// Convenience endpoint so the Render "API base" link isn't a 404.
+app.get('/api', (req, res) => {
+  res.status(200).json({ status: 'ok', docs: '/api-docs' });
+});
+
 app.use('/api/garments', GarmentRoutes);
 app.use('/api/orders', OrderRoutes);
 app.use('/api/auth', authRoutes);

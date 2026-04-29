@@ -504,6 +504,24 @@ components:
           type: boolean
           example: false
 paths:
+  /api:
+    get:
+      tags:
+        - Health
+      summary: Health check (API base)
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status: { type: string, example: ok }
+                  docs: { type: string, example: /api-docs }
+              example:
+                status: ok
+                docs: /api-docs
   /api/garments:
     get:
       tags:
